@@ -302,7 +302,318 @@ class HyperboxILPRegionEstimator(BaseEstimator):
         model.ModelSense = grb.GRB.MAXIMIZE
         model.setObjective(objective)
         model.optimize()
-        model.printQuality()
+
+        # Store solutions
+        self.lb_ = np.empty(n_features)
+        self.ub_ = np.empty(n_features)
+        for i in range(n_features):
+            self.lb_[i] = lvars[i].X
+            self.ub_[i] = uvars[i].X
+
+        return self
+
+
+    def predict(self, X):
+        '''
+        Classifies data points inside/outside the region.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Vector to be scored.
+
+        Returns
+        -------
+        y_pred : array-like of shape (n_samples,)
+            A list of booleans indicating membership in the identified region.
+
+        '''
+        n_samples, n_features = X.shape
+
+        y_pred = np.zeros(n_samples)
+        for i in range(n_samples):
+            in_box = True
+            for j in range(n_features):
+                if X[i, j] < self.lb_[j] or X[i, j] > self.ub_[j]:
+                    in_box = False
+            y_pred[i] = in_box
+
+        return y_pred
+
+
+
+class HyperboxILPComplementRegionEstimator(BaseEstimator):
+    '''
+    Identifies a region of disagreement as a hyperbox, using the Hyperbox Comp integer linear program.
+
+    Parameters
+    ----------
+    beta : float
+        A real number between 0 and 1 representing the size of the desired region.
+
+    Attributes
+    ----------
+    lb_ : array-like of shape (n_features,)
+        A list of lower bounds of the fitted hyperbox, one for each feature.
+    
+    ub_ : array-like of shape (n_features,)
+        A list of upper bounds of the fitted hyperbox, one for each feature.
+
+    '''
+
+    def __init__(self, beta=0.25):
+        self.beta = beta
+
+    def fit(self, X, y, a, outcome_model, grb_params={"MIPGap":.05, "Threads": 12, "TimeLimit": 600}):
+        '''
+        Fits the estimator to data.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Training vector, where n_samples is the number of samples and
+            n_features is the number of features.
+
+        y : array-like of shape (n_samples,)
+            Target vector relative to X.
+
+        a : array-like of shape (n_samples,)
+            Agent labels relative to X.
+
+        outcome_model
+            A fitted predictor with a .predict_proba(X) method such that 
+            .predict_proba(X)[:, 1] consists of real numbers between 0 and 1.
+
+        grb_params : dictionary, default {"MIPGap": .05, "Threads": 12, "TimeLimit": 600}
+            Parameters for grb.Model('model').
+
+        Returns
+        -------
+        self
+            Fitted estimator.
+        '''
+
+        # Get predictions from outcome_model
+        preds = outcome_model.predict_proba(X)[:, 1]
+
+        # Compute ILP coefficients
+        n_samples, n_features = X.shape
+        n_agents = len(np.unique(a))
+        data_terms = np.zeros((n_samples, n_agents))
+        for i in range(n_samples):
+            data_terms[i, a[i]] = y[i]-preds[i]
+            
+        # Optimizer settings
+        model = grb.Model('model')
+        for param in grb_params:
+            model.setParam(param, grb_params[param])
+
+        # Region indicators
+        svars = []
+        for i in range(n_samples):
+            si = model.addVar(lb=0, ub=1, vtype=grb.GRB.BINARY)
+            svars.append(si)
+            
+        # Absolute value terms
+        tvars = []
+        for a in range(n_agents):
+            ta = model.addVar(vtype=grb.GRB.CONTINUOUS)
+            model.addConstr(ta >= grb.quicksum((1-svars[i])*data_terms[i,a] for i in range(n_samples)))
+            model.addConstr(ta >= -grb.quicksum((1-svars[i])*data_terms[i,a] for i in range(n_samples)))
+            tvars.append(ta)
+            
+        # Hyper box constraints
+        lvars = []
+        uvars = []
+        for j in range(n_features):
+            lj = model.addVar(lb=-50, ub=50, vtype=grb.GRB.CONTINUOUS)
+            uj = model.addVar(lb=-50, ub=50, vtype=grb.GRB.CONTINUOUS)
+            model.addConstr(lj <= uj)
+            lvars.append(lj)
+            uvars.append(uj)
+        vvars = {}
+        wvars = {}
+        for i in range(n_samples):
+            for j in range(n_features):
+                vij = model.addVar(lb=0, ub=1, vtype=grb.GRB.BINARY)
+                wij = model.addVar(lb=0, ub=1, vtype=grb.GRB.BINARY)
+                eps = 1e-8     # Necessary for strict inequality.
+                model.addGenConstrIndicator(vij, True, lvars[j] - X[i,j] <= 0.0)
+                model.addGenConstrIndicator(vij, False, -lvars[j] + X[i,j] + eps <= 0.0)
+                model.addGenConstrIndicator(wij, True, X[i,j] - uvars[j] <= 0.0)
+                model.addGenConstrIndicator(wij, False, -X[i,j] + uvars[j] + eps <= 0.0)            
+                vvars[(i, j)] = vij
+                wvars[(i, j)] = wij
+            model.addGenConstrIndicator(svars[i], True, grb.quicksum(vvars[(i, j)]+wvars[(i, j)] for j in range(n_features)) == 2*n_features)
+            model.addGenConstrIndicator(svars[i], False, grb.quicksum(vvars[(i, j)]+wvars[(i, j)] for j in range(n_features)) <= 2*n_features-1)
+        
+        # Region size constraint
+        region_size = int(n_samples*self.beta)
+        model.addConstr(grb.quicksum(svars[i] for i in range(n_samples)) <= region_size)
+        
+        # Objective and optimization
+        objective = (1/n_samples) * grb.quicksum(ti for ti in tvars)
+        model.ModelSense = grb.GRB.MINIMIZE
+        model.setObjective(objective)
+        model.optimize()
+
+        # Store solutions
+        self.lb_ = np.empty(n_features)
+        self.ub_ = np.empty(n_features)
+        for i in range(n_features):
+            self.lb_[i] = lvars[i].X
+            self.ub_[i] = uvars[i].X
+
+        return self
+
+
+    def predict(self, X):
+        '''
+        Classifies data points inside/outside the region.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Vector to be scored.
+
+        Returns
+        -------
+        y_pred : array-like of shape (n_samples,)
+            A list of booleans indicating membership in the identified region.
+
+        '''
+        n_samples, n_features = X.shape
+
+        y_pred = np.zeros(n_samples)
+        for i in range(n_samples):
+            in_box = True
+            for j in range(n_features):
+                if X[i, j] < self.lb_[j] or X[i, j] > self.ub_[j]:
+                    in_box = False
+            y_pred[i] = in_box
+
+        return y_pred
+
+
+class HyperboxILPGroupRegionEstimator(BaseEstimator):
+    '''
+    Identifies a region of disagreement as a hyperbox, using the Hyperbox Group integer linear program.
+
+    Parameters
+    ----------
+    beta : float
+        A real number between 0 and 1 representing the size of the desired region.
+
+    Attributes
+    ----------
+    lb_ : array-like of shape (n_features,)
+        A list of lower bounds of the fitted hyperbox, one for each feature.
+    
+    ub_ : array-like of shape (n_features,)
+        A list of upper bounds of the fitted hyperbox, one for each feature.
+
+    '''
+
+    def __init__(self, beta=0.25):
+        self.beta = beta
+
+    def fit(self, X, y, a, outcome_model, grb_params={"MIPGap":.05, "Threads": 12, "TimeLimit": 600}):
+        '''
+        Fits the estimator to data.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Training vector, where n_samples is the number of samples and
+            n_features is the number of features.
+
+        y : array-like of shape (n_samples,)
+            Target vector relative to X.
+
+        a : array-like of shape (n_samples,)
+            Agent labels relative to X.
+
+        outcome_model
+            A fitted predictor with a .predict_proba(X) method such that 
+            .predict_proba(X)[:, 1] consists of real numbers between 0 and 1.
+
+        grb_params : dictionary, default {"MIPGap": .05, "Threads": 12, "TimeLimit": 600}
+            Parameters for grb.Model('model').
+
+        Returns
+        -------
+        self
+            Fitted estimator.
+        '''
+
+        # Get predictions from outcome_model
+        preds = outcome_model.predict_proba(X)[:, 1]
+
+        # Compute ILP coefficients
+        n_samples, n_features = X.shape
+        n_agents = len(np.unique(a))
+        data_terms = np.zeros((n_samples, n_agents))
+        for i in range(n_samples):
+            data_terms[i, a[i]] = y[i]-preds[i]
+            
+        # Optimizer settings
+        model = grb.Model('model')
+        for param in grb_params:
+            model.setParam(param, grb_params[param])
+
+        # Region indicators
+        svars = []
+        for i in range(n_samples):
+            si = model.addVar(lb=0, ub=1, vtype=grb.GRB.BINARY)
+            svars.append(si)
+
+		# Group variables
+		gvars = []
+		for a in range(n_agents):
+			ga = model.addVar(lb=0, ub=1, vtype=grb.GRB.BINARY)
+			gvars.append(ga)
+            
+        # Group terms
+        tvars = []
+        for a in range(n_agents):
+            ta = model.addVar(vtype=grb.GRB.CONTINUOUS)
+            model.addConstr(ta == grb.quicksum(gvars[a]*svars[i]*data_terms[i,a] for i in range(n_samples)))
+            tvars.append(ta)
+            
+        # Hyper box constraints
+        lvars = []
+        uvars = []
+        for j in range(n_features):
+            lj = model.addVar(lb=-50, ub=50, vtype=grb.GRB.CONTINUOUS)
+            uj = model.addVar(lb=-50, ub=50, vtype=grb.GRB.CONTINUOUS)
+            model.addConstr(lj <= uj)
+            lvars.append(lj)
+            uvars.append(uj)
+        vvars = {}
+        wvars = {}
+        for i in range(n_samples):
+            for j in range(n_features):
+                vij = model.addVar(lb=0, ub=1, vtype=grb.GRB.BINARY)
+                wij = model.addVar(lb=0, ub=1, vtype=grb.GRB.BINARY)
+                eps = 1e-8     # Necessary for strict inequality.
+                model.addGenConstrIndicator(vij, True, lvars[j] - X[i,j] <= 0.0)
+                model.addGenConstrIndicator(vij, False, -lvars[j] + X[i,j] + eps <= 0.0)
+                model.addGenConstrIndicator(wij, True, X[i,j] - uvars[j] <= 0.0)
+                model.addGenConstrIndicator(wij, False, -X[i,j] + uvars[j] + eps <= 0.0)            
+                vvars[(i, j)] = vij
+                wvars[(i, j)] = wij
+            model.addGenConstrIndicator(svars[i], True, grb.quicksum(vvars[(i, j)]+wvars[(i, j)] for j in range(n_features)) == 2*n_features)
+            model.addGenConstrIndicator(svars[i], False, grb.quicksum(vvars[(i, j)]+wvars[(i, j)] for j in range(n_features)) <= 2*n_features-1)
+        
+        # Region size constraint
+        region_size = int(n_samples*self.beta)
+        model.addConstr(grb.quicksum(svars[i] for i in range(n_samples)) <= region_size)
+        
+        # Objective and optimization
+        objective = (1/n_samples) * grb.quicksum(ti for ti in tvars)
+        model.ModelSense = grb.GRB.MAXIMIZE
+        model.setObjective(objective)
+        model.optimize()
 
         # Store solutions
         self.lb_ = np.empty(n_features)
