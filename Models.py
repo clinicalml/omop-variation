@@ -566,11 +566,11 @@ class HyperboxILPGroupRegionEstimator(BaseEstimator):
             si = model.addVar(lb=0, ub=1, vtype=grb.GRB.BINARY)
             svars.append(si)
 
-		# Group variables
-		gvars = []
-		for a in range(n_agents):
-			ga = model.addVar(lb=0, ub=1, vtype=grb.GRB.BINARY)
-			gvars.append(ga)
+        # Group variables
+        gvars = []
+        for a in range(n_agents):
+            ga = model.addVar(lb=0, ub=1, vtype=grb.GRB.BINARY)
+            gvars.append(ga)
             
         # Group terms
         tvars = []
