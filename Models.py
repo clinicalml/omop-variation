@@ -1,22 +1,38 @@
 import numpy as np
 from sklearn.base import BaseEstimator
 from sklearn.ensemble import RandomForestRegressor
+import gurobipy as grb
 
 class IterativeRegionEstimator(BaseEstimator):
     '''
     Identifies a region of disagreement using the IterativeAlg method.
+
+    Parameters
+    ----------
+    region_modelclass : BaseEstimator, default=RandomForestRegressor()
+        An unfitted model class that has a .fit(X, y) method and a .predict(X) method.
+
+    beta : float, default=0.25
+        A real number between 0 and 1 representing the size of the desired region.
+
+    n_iter : int, default=10
+        Maximum number of iterations of the algorithm.
+
+    Attributes
+    ----------
+    grouping_ : dictionary
+        A dictionary mapping each agent to a binary grouping.
+
+    region_model_ : BaseEstimator
+        A fitted model of the same class as self.region_modelclass.
+
+    threshold_ : float
+        Defines the identified region of variation as the inputs x such that 
+        region_model.predict(X) >= threshold.
+
     '''
 
     def __init__(self, region_modelclass=RandomForestRegressor(), beta=0.25, n_iter=10):
-        '''
-        Initializes the iterative region estimator.
-
-        Arguments: 
-        region_modelclass -- an unfitted model class that has a .fit(X, y) method and a .predict(X) method
-                             (default RandomForestRegressor)
-        beta -- a real number between 0 and 1 representing the size of the desired region (default 0.25)
-        n_iter -- maximum number of iterations of the algorithm (default 10)
-        '''
         self.region_modelclass = region_modelclass
         self.beta = beta
         self.n_iter = n_iter
@@ -25,14 +41,23 @@ class IterativeRegionEstimator(BaseEstimator):
         '''
         Identifies the best grouping given a region.
 
-        Arguments:
-        S -- a boolean array of the same length as the number of rows in X, indicating membership in the region
-        X, y, a -- data inherited from .fit()
-        preds -- array-like of the same length as the number of rows in X
+        Parameters
+        ----------
+        S : array-like of shape (n_samples,)
+            A list of booleans indicating membership in the current region.
 
-        Returns:
-        G -- a dictionary mapping each unique element of a to a binary grouping
-        q_score -- a float hat{Q}(S, G), a measure of the variation on S under grouping G
+        X, y, a : data inherited from .fit().
+
+        preds : array-like of shape (n_samples,)
+            A list of floats representing predictions of the outcome_model passed into .fit().
+
+        Returns
+        -------
+        G : dictionary
+            A dictionary mapping each unique element of a to a binary grouping.
+
+        q_score : float
+            The value hat{Q}(S, G), a measure of the variation on S under grouping G.
         '''
 
         # Put everyone in group 0
@@ -56,13 +81,20 @@ class IterativeRegionEstimator(BaseEstimator):
         '''
         Identifies the best region given a grouping.
 
-        Arguments:
-        G -- a dictionary mapping each unique element of a to a binary grouping
-        X, y, a -- data inherited from .fit()
-        preds -- array-like of the same length as the number of rows in X
+        Parameters
+        ----------
+        G : dictionary
+            A dictionary mapping each unique element of a to a binary grouping.
 
-        Returns:
-        region_model -- a fitted estimator of the same class as self.region_modelclass
+        X, y, a : data inherited from .fit().
+
+        preds : array-like of shape (n_samples,)
+            A list of floats representing predictions of the outcome_model passed into .fit().
+
+        Returns
+        -------
+        region_model : BaseEstimator
+            A fitted estimator of the same class as self.region_modelclass.
         '''
         
         # Get the groupings for agents of each data point
@@ -80,17 +112,26 @@ class IterativeRegionEstimator(BaseEstimator):
         '''
         Fits the estimator to data.
 
-        Arguments:
-        X -- array-like of shape (n_samples, n_features)
-        y -- array-like of shape (n_samples,)
-        a -- array-like of shape (n_samples,), representing the decision-maker
-        outcome_model -- a fitted predictor that has a .predict_proba(X) method that accepts 
-                         an input matrix and outputs an array of as many rows, and 2 columns, such that 
-                         .predict_proba(X)[:, 1] consists of real numbers between 0 and 1, representing 
-                         the probabilities P[Y=1 | X=x]. 
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Training vector, where n_samples is the number of samples and
+            n_features is the number of features.
 
-        Returns:
-        self -- this object
+        y : array-like of shape (n_samples,)
+            Target vector relative to X.
+
+        a : array-like of shape (n_samples,)
+            Agent labels relative to X.
+
+        outcome_model
+            A fitted predictor with a .predict_proba(X) method such that 
+            .predict_proba(X)[:, 1] consists of real numbers between 0 and 1.
+
+        Returns
+        -------
+        self
+            Fitted estimator.
         '''
 
         # Get predictions from outcome_model
@@ -128,12 +169,174 @@ class IterativeRegionEstimator(BaseEstimator):
         '''
         Classifies data points inside/outside the region.
 
-        Arguments:
-        X -- array-like of shape(n_samples, n_features)
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Vector to be scored.
 
-        Returns:
-        y_pred -- array-like of shape (n_samples,)
+        Returns
+        -------
+        y_pred : array-like of shape (n_samples,)
+            A list of booleans indicating membership in the identified region.
+
         '''
         region_scores = self.region_model_.predict(X)
         return region_scores >= self.threshold_
 
+class HyperboxILPRegionEstimator(BaseEstimator):
+    '''
+    Identifies a region of disagreement as a hyperbox, using the Hyperbox integer linear program.
+
+    Parameters
+    ----------
+    beta : float
+        A real number between 0 and 1 representing the size of the desired region.
+
+    Attributes
+    ----------
+    lb_ : array-like of shape (n_features,)
+        A list of lower bounds of the fitted hyperbox, one for each feature.
+    
+    ub_ : array-like of shape (n_features,)
+        A list of upper bounds of the fitted hyperbox, one for each feature.
+
+    '''
+
+    def __init__(self, beta=0.25):
+        self.beta = beta
+
+    def fit(self, X, y, a, outcome_model, grb_params={"MIPGap":.05, "Threads": 12, "TimeLimit": 600}):
+        '''
+        Fits the estimator to data.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Training vector, where n_samples is the number of samples and
+            n_features is the number of features.
+
+        y : array-like of shape (n_samples,)
+            Target vector relative to X.
+
+        a : array-like of shape (n_samples,)
+            Agent labels relative to X.
+
+        outcome_model
+            A fitted predictor with a .predict_proba(X) method such that 
+            .predict_proba(X)[:, 1] consists of real numbers between 0 and 1.
+
+        grb_params : dictionary, default {"MIPGap": .05, "Threads": 12, "TimeLimit": 600}
+            Parameters for grb.Model('model').
+
+        Returns
+        -------
+        self
+            Fitted estimator.
+        '''
+
+        # Get predictions from outcome_model
+        preds = outcome_model.predict_proba(X)[:, 1]
+
+        # Compute ILP coefficients
+        n_samples, n_features = X.shape
+        n_agents = len(np.unique(a))
+        data_terms = np.zeros((n_samples, n_agents))
+        for i in range(n_samples):
+            data_terms[i, a[i]] = y[i]-preds[i]
+            
+        # Optimizer settings
+        model = grb.Model('model')
+        for param in grb_params:
+            model.setParam(param, grb_params[param])
+
+        # Region indicators
+        svars = []
+        for i in range(n_samples):
+            si = model.addVar(lb=0, ub=1, vtype=grb.GRB.BINARY)
+            svars.append(si)
+            
+        # Absolute value terms
+        tvars = []
+        bvars = []
+        for a in range(n_agents):
+            ta = model.addVar(vtype=grb.GRB.CONTINUOUS)
+            ba = model.addVar(lb=0, ub=1, vtype=grb.GRB.BINARY)
+            model.addConstr(ta >= grb.quicksum(svars[i]*data_terms[i,a] for i in range(n_samples)))
+            model.addConstr(ta >= -grb.quicksum(svars[i]*data_terms[i,a] for i in range(n_samples)))
+            model.addGenConstrIndicator(ba, True, ta + grb.quicksum(svars[i]*data_terms[i,a] for i in range(n_samples)) <= 0.0)
+            model.addGenConstrIndicator(ba, False, ta - grb.quicksum(svars[i]*data_terms[i,a] for i in range(n_samples)) <= 0.0)
+            tvars.append(ta)
+            bvars.append(ba)
+            
+        # Hyper box constraints
+        lvars = []
+        uvars = []
+        for j in range(n_features):
+            lj = model.addVar(lb=-50, ub=50, vtype=grb.GRB.CONTINUOUS)
+            uj = model.addVar(lb=-50, ub=50, vtype=grb.GRB.CONTINUOUS)
+            model.addConstr(lj <= uj)
+            lvars.append(lj)
+            uvars.append(uj)
+        vvars = {}
+        wvars = {}
+        for i in range(n_samples):
+            for j in range(n_features):
+                vij = model.addVar(lb=0, ub=1, vtype=grb.GRB.BINARY)
+                wij = model.addVar(lb=0, ub=1, vtype=grb.GRB.BINARY)
+                eps = 1e-8     # Necessary for strict inequality.
+                model.addGenConstrIndicator(vij, True, lvars[j] - X[i,j] <= 0.0)
+                model.addGenConstrIndicator(vij, False, -lvars[j] + X[i,j] + eps <= 0.0)
+                model.addGenConstrIndicator(wij, True, X[i,j] - uvars[j] <= 0.0)
+                model.addGenConstrIndicator(wij, False, -X[i,j] + uvars[j] + eps <= 0.0)            
+                vvars[(i, j)] = vij
+                wvars[(i, j)] = wij
+            model.addGenConstrIndicator(svars[i], True, grb.quicksum(vvars[(i, j)]+wvars[(i, j)] for j in range(n_features)) == 2*n_features)
+            model.addGenConstrIndicator(svars[i], False, grb.quicksum(vvars[(i, j)]+wvars[(i, j)] for j in range(n_features)) <= 2*n_features-1)
+        
+        # Region size constraint
+        region_size = int(n_samples*self.beta)
+        model.addConstr(grb.quicksum(svars[i] for i in range(n_samples)) <= region_size)
+        
+        # Objective and optimization
+        objective = (1/n_samples) * grb.quicksum(ti for ti in tvars)
+        model.ModelSense = grb.GRB.MAXIMIZE
+        model.setObjective(objective)
+        model.optimize()
+        model.printQuality()
+
+        # Store solutions
+        self.lb_ = np.empty(n_features)
+        self.ub_ = np.empty(n_features)
+        for i in range(n_features):
+            self.lb_[i] = lvars[i].X
+            self.ub_[i] = uvars[i].X
+
+        return self
+
+
+    def predict(self, X):
+        '''
+        Classifies data points inside/outside the region.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Vector to be scored.
+
+        Returns
+        -------
+        y_pred : array-like of shape (n_samples,)
+            A list of booleans indicating membership in the identified region.
+
+        '''
+        n_samples, n_features = X.shape
+
+        y_pred = np.zeros(n_samples)
+        for i in range(n_samples):
+            in_box = True
+            for j in range(n_features):
+                if X[i, j] < self.lb_[j] or X[i, j] > self.ub_[j]:
+                    in_box = False
+            y_pred[i] = in_box
+
+        return y_pred
