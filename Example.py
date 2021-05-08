@@ -63,6 +63,10 @@ print("Recall: %.4f" % recall_score(region_true, region))
 print("F1 score: %.4f" % f1_score(region_true, region))
 print("AUC: %.4f" % roc_auc_score(region_true, region))
 
+print("Hyperbox parameters:")
+for j in range(X.shape[1]):
+    print("Dimension %d: [%.4f, %.4f]" % (j, model.lb_[j], model.ub_[j]))
+
 plt.figure()
 plt.scatter(X[:, 0], X[:, 1], c=region)
 plt.savefig("HyperboxILPRegionEstimator.pdf", dpi=100)

@@ -511,7 +511,6 @@ class HyperboxILPGroupRegionEstimator(BaseEstimator):
     
     ub_ : array-like of shape (n_features,)
         A list of upper bounds of the fitted hyperbox, one for each feature.
-
     '''
 
     def __init__(self, beta=0.25):
@@ -651,3 +650,5 @@ class HyperboxILPGroupRegionEstimator(BaseEstimator):
             y_pred[i] = in_box
 
         return y_pred
+
+
