@@ -953,28 +953,28 @@ Models    </h1>
 
             <div class="docstring"><p>Identifies a region of disagreement using the IterativeAlg method.</p>
 
-<h2 id="parameters">Parameters</h2>
+<h6 id="parameters">Parameters</h6>
 
-<p>region_modelclass : BaseEstimator, default=RandomForestRegressor()
-    An unfitted model class that has a .fit(X, y) method and a .predict(X) method.</p>
+<ul>
+<li><strong>region_modelclass</strong> (BaseEstimator, default=RandomForestRegressor()):
+An unfitted model class that has a .fit(X, y) method and a .predict(X) method.</li>
+<li><strong>beta</strong> (float, default=0.25):
+A real number between 0 and 1 representing the size of the desired region.</li>
+<li><strong>n_iter</strong> (int, default=10):
+Maximum number of iterations of the algorithm.</li>
+</ul>
 
-<p>beta : float, default=0.25
-    A real number between 0 and 1 representing the size of the desired region.</p>
+<h6 id="attributes">Attributes</h6>
 
-<p>n_iter : int, default=10
-    Maximum number of iterations of the algorithm.</p>
-
-<h2 id="attributes">Attributes</h2>
-
-<p>grouping_ : dictionary
-    A dictionary mapping each agent to a binary grouping.</p>
-
-<p>region_model_ : BaseEstimator
-    A fitted model of the same class as self.region_modelclass.</p>
-
-<p>threshold_ : float
-    Defines the identified region of variation as the inputs x such that 
-    region_model.predict(X) &gt;= threshold.</p>
+<ul>
+<li><strong>grouping_</strong> (dictionary):
+A dictionary mapping each agent to a binary grouping.</li>
+<li><strong>region_model_</strong> (BaseEstimator):
+A fitted model of the same class as self.region_modelclass.</li>
+<li><strong>threshold_</strong> (float):
+Defines the identified region of variation as the inputs x such that 
+region_model.predict(X) &gt;= threshold.</li>
+</ul>
 </div>
 
 
@@ -1070,26 +1070,25 @@ Models    </h1>
 
             <div class="docstring"><p>Fits the estimator to data.</p>
 
-<h2 id="parameters">Parameters</h2>
+<h6 id="parameters">Parameters</h6>
 
-<p>X : array-like of shape (n_samples, n_features)
-    Training vector, where n_samples is the number of samples and
-    n_features is the number of features.</p>
+<ul>
+<li><strong>X</strong> (array-like of shape (n_samples, n_features)):
+Training vector, where n_samples is the number of samples and
+n_features is the number of features.</li>
+<li><strong>y</strong> (array-like of shape (n_samples,)):
+Target vector relative to X.</li>
+<li><strong>a</strong> (array-like of shape (n_samples,)):
+Agent labels relative to X.</li>
+<li><strong>outcome_model</strong>: A fitted predictor with a .predict_proba(X) method such that 
+.predict_proba(X)[:, 1] consists of real numbers between 0 and 1.</li>
+</ul>
 
-<p>y : array-like of shape (n_samples,)
-    Target vector relative to X.</p>
+<h6 id="returns">Returns</h6>
 
-<p>a : array-like of shape (n_samples,)
-    Agent labels relative to X.</p>
-
-<p>outcome_model
-    A fitted predictor with a .predict_proba(X) method such that 
-    .predict_proba(X)[:, 1] consists of real numbers between 0 and 1.</p>
-
-<h2 id="returns">Returns</h2>
-
-<p>self
-    Fitted estimator.</p>
+<ul>
+<li><strong>self</strong>: Fitted estimator.</li>
+</ul>
 </div>
 
 
@@ -1127,15 +1126,19 @@ Models    </h1>
 
             <div class="docstring"><p>Classifies data points inside/outside the region.</p>
 
-<h2 id="parameters">Parameters</h2>
+<h6 id="parameters">Parameters</h6>
 
-<p>X : array-like of shape (n_samples, n_features)
-    Vector to be scored.</p>
+<ul>
+<li><strong>X</strong> (array-like of shape (n_samples, n_features)):
+Vector to be scored.</li>
+</ul>
 
-<h2 id="returns">Returns</h2>
+<h6 id="returns">Returns</h6>
 
-<p>y_pred : array-like of shape (n_samples,)
-    A list of booleans indicating membership in the identified region.</p>
+<ul>
+<li><strong>y_pred</strong> (array-like of shape (n_samples,)):
+A list of booleans indicating membership in the identified region.</li>
+</ul>
 </div>
 
 
@@ -1324,18 +1327,21 @@ Models    </h1>
 
             <div class="docstring"><p>Identifies a region of disagreement as a hyperbox, using the Hyperbox integer linear program.</p>
 
-<h2 id="parameters">Parameters</h2>
+<h6 id="parameters">Parameters</h6>
 
-<p>beta : float
-    A real number between 0 and 1 representing the size of the desired region.</p>
+<ul>
+<li><strong>beta</strong> (float):
+A real number between 0 and 1 representing the size of the desired region.</li>
+</ul>
 
-<h2 id="attributes">Attributes</h2>
+<h6 id="attributes">Attributes</h6>
 
-<p>lb_ : array-like of shape (n_features,)
-    A list of lower bounds of the fitted hyperbox, one for each feature.</p>
-
-<p>ub_ : array-like of shape (n_features,)
-    A list of upper bounds of the fitted hyperbox, one for each feature.</p>
+<ul>
+<li><strong>lb_</strong> (array-like of shape (n_features,)):
+A list of lower bounds of the fitted hyperbox, one for each feature.</li>
+<li><strong>ub_</strong> (array-like of shape (n_features,)):
+A list of upper bounds of the fitted hyperbox, one for each feature.</li>
+</ul>
 </div>
 
 
@@ -1486,29 +1492,27 @@ Models    </h1>
 
             <div class="docstring"><p>Fits the estimator to data.</p>
 
-<h2 id="parameters">Parameters</h2>
+<h6 id="parameters">Parameters</h6>
 
-<p>X : array-like of shape (n_samples, n_features)
-    Training vector, where n_samples is the number of samples and
-    n_features is the number of features.</p>
+<ul>
+<li><strong>X</strong> (array-like of shape (n_samples, n_features)):
+Training vector, where n_samples is the number of samples and
+n_features is the number of features.</li>
+<li><strong>y</strong> (array-like of shape (n_samples,)):
+Target vector relative to X.</li>
+<li><strong>a</strong> (array-like of shape (n_samples,)):
+Agent labels relative to X.</li>
+<li><strong>outcome_model</strong>: A fitted predictor with a .predict_proba(X) method such that 
+.predict_proba(X)[:, 1] consists of real numbers between 0 and 1.</li>
+<li><strong>grb_params : dictionary, default {"MIPGap": .05, "Threads": 12, "TimeLimit"</strong> (600}):
+Parameters for grb.Model('model').</li>
+</ul>
 
-<p>y : array-like of shape (n_samples,)
-    Target vector relative to X.</p>
+<h6 id="returns">Returns</h6>
 
-<p>a : array-like of shape (n_samples,)
-    Agent labels relative to X.</p>
-
-<p>outcome_model
-    A fitted predictor with a .predict_proba(X) method such that 
-    .predict_proba(X)[:, 1] consists of real numbers between 0 and 1.</p>
-
-<p>grb_params : dictionary, default {"MIPGap": .05, "Threads": 12, "TimeLimit": 600}
-    Parameters for grb.Model('model').</p>
-
-<h2 id="returns">Returns</h2>
-
-<p>self
-    Fitted estimator.</p>
+<ul>
+<li><strong>self</strong>: Fitted estimator.</li>
+</ul>
 </div>
 
 
@@ -1555,15 +1559,19 @@ Models    </h1>
 
             <div class="docstring"><p>Classifies data points inside/outside the region.</p>
 
-<h2 id="parameters">Parameters</h2>
+<h6 id="parameters">Parameters</h6>
 
-<p>X : array-like of shape (n_samples, n_features)
-    Vector to be scored.</p>
+<ul>
+<li><strong>X</strong> (array-like of shape (n_samples, n_features)):
+Vector to be scored.</li>
+</ul>
 
-<h2 id="returns">Returns</h2>
+<h6 id="returns">Returns</h6>
 
-<p>y_pred : array-like of shape (n_samples,)
-    A list of booleans indicating membership in the identified region.</p>
+<ul>
+<li><strong>y_pred</strong> (array-like of shape (n_samples,)):
+A list of booleans indicating membership in the identified region.</li>
+</ul>
 </div>
 
 
@@ -1747,18 +1755,21 @@ Models    </h1>
 
             <div class="docstring"><p>Identifies a region of disagreement as a hyperbox, using the Hyperbox Comp integer linear program.</p>
 
-<h2 id="parameters">Parameters</h2>
+<h6 id="parameters">Parameters</h6>
 
-<p>beta : float
-    A real number between 0 and 1 representing the size of the desired region.</p>
+<ul>
+<li><strong>beta</strong> (float):
+A real number between 0 and 1 representing the size of the desired region.</li>
+</ul>
 
-<h2 id="attributes">Attributes</h2>
+<h6 id="attributes">Attributes</h6>
 
-<p>lb_ : array-like of shape (n_features,)
-    A list of lower bounds of the fitted hyperbox, one for each feature.</p>
-
-<p>ub_ : array-like of shape (n_features,)
-    A list of upper bounds of the fitted hyperbox, one for each feature.</p>
+<ul>
+<li><strong>lb_</strong> (array-like of shape (n_features,)):
+A list of lower bounds of the fitted hyperbox, one for each feature.</li>
+<li><strong>ub_</strong> (array-like of shape (n_features,)):
+A list of upper bounds of the fitted hyperbox, one for each feature.</li>
+</ul>
 </div>
 
 
@@ -1904,29 +1915,27 @@ Models    </h1>
 
             <div class="docstring"><p>Fits the estimator to data.</p>
 
-<h2 id="parameters">Parameters</h2>
+<h6 id="parameters">Parameters</h6>
 
-<p>X : array-like of shape (n_samples, n_features)
-    Training vector, where n_samples is the number of samples and
-    n_features is the number of features.</p>
+<ul>
+<li><strong>X</strong> (array-like of shape (n_samples, n_features)):
+Training vector, where n_samples is the number of samples and
+n_features is the number of features.</li>
+<li><strong>y</strong> (array-like of shape (n_samples,)):
+Target vector relative to X.</li>
+<li><strong>a</strong> (array-like of shape (n_samples,)):
+Agent labels relative to X.</li>
+<li><strong>outcome_model</strong>: A fitted predictor with a .predict_proba(X) method such that 
+.predict_proba(X)[:, 1] consists of real numbers between 0 and 1.</li>
+<li><strong>grb_params : dictionary, default {"MIPGap": .05, "Threads": 12, "TimeLimit"</strong> (600}):
+Parameters for grb.Model('model').</li>
+</ul>
 
-<p>y : array-like of shape (n_samples,)
-    Target vector relative to X.</p>
+<h6 id="returns">Returns</h6>
 
-<p>a : array-like of shape (n_samples,)
-    Agent labels relative to X.</p>
-
-<p>outcome_model
-    A fitted predictor with a .predict_proba(X) method such that 
-    .predict_proba(X)[:, 1] consists of real numbers between 0 and 1.</p>
-
-<p>grb_params : dictionary, default {"MIPGap": .05, "Threads": 12, "TimeLimit": 600}
-    Parameters for grb.Model('model').</p>
-
-<h2 id="returns">Returns</h2>
-
-<p>self
-    Fitted estimator.</p>
+<ul>
+<li><strong>self</strong>: Fitted estimator.</li>
+</ul>
 </div>
 
 
@@ -1973,15 +1982,19 @@ Models    </h1>
 
             <div class="docstring"><p>Classifies data points inside/outside the region.</p>
 
-<h2 id="parameters">Parameters</h2>
+<h6 id="parameters">Parameters</h6>
 
-<p>X : array-like of shape (n_samples, n_features)
-    Vector to be scored.</p>
+<ul>
+<li><strong>X</strong> (array-like of shape (n_samples, n_features)):
+Vector to be scored.</li>
+</ul>
 
-<h2 id="returns">Returns</h2>
+<h6 id="returns">Returns</h6>
 
-<p>y_pred : array-like of shape (n_samples,)
-    A list of booleans indicating membership in the identified region.</p>
+<ul>
+<li><strong>y_pred</strong> (array-like of shape (n_samples,)):
+A list of booleans indicating membership in the identified region.</li>
+</ul>
 </div>
 
 
@@ -2169,18 +2182,21 @@ Models    </h1>
 
             <div class="docstring"><p>Identifies a region of disagreement as a hyperbox, using the Hyperbox Group integer linear program.</p>
 
-<h2 id="parameters">Parameters</h2>
+<h6 id="parameters">Parameters</h6>
 
-<p>beta : float
-    A real number between 0 and 1 representing the size of the desired region.</p>
+<ul>
+<li><strong>beta</strong> (float):
+A real number between 0 and 1 representing the size of the desired region.</li>
+</ul>
 
-<h2 id="attributes">Attributes</h2>
+<h6 id="attributes">Attributes</h6>
 
-<p>lb_ : array-like of shape (n_features,)
-    A list of lower bounds of the fitted hyperbox, one for each feature.</p>
-
-<p>ub_ : array-like of shape (n_features,)
-    A list of upper bounds of the fitted hyperbox, one for each feature.</p>
+<ul>
+<li><strong>lb_</strong> (array-like of shape (n_features,)):
+A list of lower bounds of the fitted hyperbox, one for each feature.</li>
+<li><strong>ub_</strong> (array-like of shape (n_features,)):
+A list of upper bounds of the fitted hyperbox, one for each feature.</li>
+</ul>
 </div>
 
 
@@ -2331,29 +2347,27 @@ Models    </h1>
 
             <div class="docstring"><p>Fits the estimator to data.</p>
 
-<h2 id="parameters">Parameters</h2>
+<h6 id="parameters">Parameters</h6>
 
-<p>X : array-like of shape (n_samples, n_features)
-    Training vector, where n_samples is the number of samples and
-    n_features is the number of features.</p>
+<ul>
+<li><strong>X</strong> (array-like of shape (n_samples, n_features)):
+Training vector, where n_samples is the number of samples and
+n_features is the number of features.</li>
+<li><strong>y</strong> (array-like of shape (n_samples,)):
+Target vector relative to X.</li>
+<li><strong>a</strong> (array-like of shape (n_samples,)):
+Agent labels relative to X.</li>
+<li><strong>outcome_model</strong>: A fitted predictor with a .predict_proba(X) method such that 
+.predict_proba(X)[:, 1] consists of real numbers between 0 and 1.</li>
+<li><strong>grb_params : dictionary, default {"MIPGap": .05, "Threads": 12, "TimeLimit"</strong> (600}):
+Parameters for grb.Model('model').</li>
+</ul>
 
-<p>y : array-like of shape (n_samples,)
-    Target vector relative to X.</p>
+<h6 id="returns">Returns</h6>
 
-<p>a : array-like of shape (n_samples,)
-    Agent labels relative to X.</p>
-
-<p>outcome_model
-    A fitted predictor with a .predict_proba(X) method such that 
-    .predict_proba(X)[:, 1] consists of real numbers between 0 and 1.</p>
-
-<p>grb_params : dictionary, default {"MIPGap": .05, "Threads": 12, "TimeLimit": 600}
-    Parameters for grb.Model('model').</p>
-
-<h2 id="returns">Returns</h2>
-
-<p>self
-    Fitted estimator.</p>
+<ul>
+<li><strong>self</strong>: Fitted estimator.</li>
+</ul>
 </div>
 
 
@@ -2400,15 +2414,19 @@ Models    </h1>
 
             <div class="docstring"><p>Classifies data points inside/outside the region.</p>
 
-<h2 id="parameters">Parameters</h2>
+<h6 id="parameters">Parameters</h6>
 
-<p>X : array-like of shape (n_samples, n_features)
-    Vector to be scored.</p>
+<ul>
+<li><strong>X</strong> (array-like of shape (n_samples, n_features)):
+Vector to be scored.</li>
+</ul>
 
-<h2 id="returns">Returns</h2>
+<h6 id="returns">Returns</h6>
 
-<p>y_pred : array-like of shape (n_samples,)
-    A list of booleans indicating membership in the identified region.</p>
+<ul>
+<li><strong>y_pred</strong> (array-like of shape (n_samples,)):
+A list of booleans indicating membership in the identified region.</li>
+</ul>
 </div>
 
 
