@@ -23,10 +23,10 @@ Each estimator follows the scikit-learn [API specification](https://scikit-learn
 
 ```python
 # Train outcome model
-outcome_model = RandomForestClassifier(min_samples_leaf=10).fit(X, y)
+outcome_model = RandomForestClassifier().fit(X, y)
 
 # Identify regions of X with heterogeneity
-model = IterativeRegionEstimator(region_modelclass=RandomForestRegressor(min_samples_leaf=10), beta=0.25)
+model = IterativeRegionEstimator(region_modelclass=RandomForestRegressor(), beta=0.25)
 model.fit(X, y, a, outcome_model)
 region = model.predict(X)
 ```
