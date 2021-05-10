@@ -15,6 +15,10 @@ This repository contains algorithms to identify the contexts on which this heter
 
 For more background on this topic, and for a complete exposition of the algorithms contained in this repository, refer to [placeholder for thesis]().
 
+## Dependencies
+
+The repository uses the libraries `numpy` and `sklearn`. It also requires `gurobipy`, which academics may request a license for by following the installation instructions [here](https://www.gurobi.com/documentation/9.1/quickstart_mac/cs_using_pip_to_install_gr.html).
+
 ## Usage
 
 The algorithms can be applied to any general decision-making process with contextual factors `X`, a binary decision `y`, and the agent / decision-maker `a`. There are four algorithms, implemented in [Models.py](https://github.com/clinicalml/omop-variation/blob/main/Models.py). 
