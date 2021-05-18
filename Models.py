@@ -39,7 +39,8 @@ class IterativeRegionEstimator(BaseEstimator):
 
     def _best_grouping(self, S, X, y, a, preds):
         '''
-        Identifies the best grouping given a region.
+        Identifies the best grouping given a region, based on positive /
+        negative estimates of bias.
 
         Parameters
         ----------
@@ -60,7 +61,7 @@ class IterativeRegionEstimator(BaseEstimator):
             The value hat{Q}(S, G), a measure of the variation on S under grouping G.
         '''
 
-        # Put everyone in group 0
+        # Put everyone in group 0 to start, but should be replaced by +1 / -1
         G = {}
         for agent in np.unique(a):
             G[agent] = 0
@@ -74,6 +75,11 @@ class IterativeRegionEstimator(BaseEstimator):
                 if term >= 0:
                     G[agent] = 1
                     q_score += term
+                else:
+                    G[agent] = -1
+                    q_score += (term * -1)
+
+        assert np.all(np.abs(G) == 1)
 
         return G, q_score
 
@@ -96,16 +102,16 @@ class IterativeRegionEstimator(BaseEstimator):
         region_model : BaseEstimator
             A fitted estimator of the same class as self.region_modelclass.
         '''
-        
+
         # Get the groupings for agents of each data point
         g = np.zeros(len(a))
         for i in range(len(a)):
             g[i] = G[a[i]]
 
-        # Train model to predict residuals in group 1
+        # Train model to predict absolute value of residuals
         res = (y - preds) * g
         region_model = self.region_modelclass.fit(X, res)
-        
+
         return region_model
 
     def fit(self, X, y, a, outcome_model):
@@ -143,7 +149,7 @@ class IterativeRegionEstimator(BaseEstimator):
         G_prev = None
         region_model = None
         threshold = None
-        
+
         for it in range(self.n_iter):
             # Find the best grouping for the current region
             G, q_score = self._best_grouping(S, X, y, a, preds)
