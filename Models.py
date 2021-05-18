@@ -79,7 +79,8 @@ class IterativeRegionEstimator(BaseEstimator):
                     G[agent] = -1
                     q_score += (term * -1)
 
-        assert np.all(np.abs(G) == 1)
+        for agent in G.keys():
+            assert G[agent] in [-1, 1]
 
         return G, q_score
 
@@ -202,7 +203,7 @@ class HyperboxILPRegionEstimator(BaseEstimator):
     ----------
     lb_ : array-like of shape (n_features,)
         A list of lower bounds of the fitted hyperbox, one for each feature.
-    
+
     ub_ : array-like of shape (n_features,)
         A list of upper bounds of the fitted hyperbox, one for each feature.
 
@@ -249,7 +250,7 @@ class HyperboxILPRegionEstimator(BaseEstimator):
         data_terms = np.zeros((n_samples, n_agents))
         for i in range(n_samples):
             data_terms[i, a[i]] = y[i]-preds[i]
-            
+
         # Optimizer settings
         model = grb.Model('model')
         for param in grb_params:
@@ -260,7 +261,7 @@ class HyperboxILPRegionEstimator(BaseEstimator):
         for i in range(n_samples):
             si = model.addVar(lb=0, ub=1, vtype=grb.GRB.BINARY)
             svars.append(si)
-            
+
         # Absolute value terms
         tvars = []
         bvars = []
@@ -273,7 +274,7 @@ class HyperboxILPRegionEstimator(BaseEstimator):
             model.addGenConstrIndicator(ba, False, ta - grb.quicksum(svars[i]*data_terms[i,a] for i in range(n_samples)) <= 0.0)
             tvars.append(ta)
             bvars.append(ba)
-            
+
         # Hyper box constraints
         lvars = []
         uvars = []
@@ -298,11 +299,11 @@ class HyperboxILPRegionEstimator(BaseEstimator):
                 wvars[(i, j)] = wij
             model.addGenConstrIndicator(svars[i], True, grb.quicksum(vvars[(i, j)]+wvars[(i, j)] for j in range(n_features)) == 2*n_features)
             model.addGenConstrIndicator(svars[i], False, grb.quicksum(vvars[(i, j)]+wvars[(i, j)] for j in range(n_features)) <= 2*n_features-1)
-        
+
         # Region size constraint
         region_size = int(n_samples*self.beta)
         model.addConstr(grb.quicksum(svars[i] for i in range(n_samples)) <= region_size)
-        
+
         # Objective and optimization
         objective = (1/n_samples) * grb.quicksum(ti for ti in tvars)
         model.ModelSense = grb.GRB.MAXIMIZE
@@ -346,8 +347,6 @@ class HyperboxILPRegionEstimator(BaseEstimator):
 
         return y_pred
 
-
-
 class HyperboxILPComplementRegionEstimator(BaseEstimator):
     '''
     Identifies a region of disagreement as a hyperbox, using the Hyperbox Comp integer linear program.
@@ -361,7 +360,7 @@ class HyperboxILPComplementRegionEstimator(BaseEstimator):
     ----------
     lb_ : array-like of shape (n_features,)
         A list of lower bounds of the fitted hyperbox, one for each feature.
-    
+
     ub_ : array-like of shape (n_features,)
         A list of upper bounds of the fitted hyperbox, one for each feature.
 
@@ -408,7 +407,7 @@ class HyperboxILPComplementRegionEstimator(BaseEstimator):
         data_terms = np.zeros((n_samples, n_agents))
         for i in range(n_samples):
             data_terms[i, a[i]] = y[i]-preds[i]
-            
+
         # Optimizer settings
         model = grb.Model('model')
         for param in grb_params:
@@ -419,7 +418,7 @@ class HyperboxILPComplementRegionEstimator(BaseEstimator):
         for i in range(n_samples):
             si = model.addVar(lb=0, ub=1, vtype=grb.GRB.BINARY)
             svars.append(si)
-            
+
         # Absolute value terms
         tvars = []
         for a in range(n_agents):
@@ -427,7 +426,7 @@ class HyperboxILPComplementRegionEstimator(BaseEstimator):
             model.addConstr(ta >= grb.quicksum((1-svars[i])*data_terms[i,a] for i in range(n_samples)))
             model.addConstr(ta >= -grb.quicksum((1-svars[i])*data_terms[i,a] for i in range(n_samples)))
             tvars.append(ta)
-            
+
         # Hyper box constraints
         lvars = []
         uvars = []
@@ -452,11 +451,11 @@ class HyperboxILPComplementRegionEstimator(BaseEstimator):
                 wvars[(i, j)] = wij
             model.addGenConstrIndicator(svars[i], True, grb.quicksum(vvars[(i, j)]+wvars[(i, j)] for j in range(n_features)) == 2*n_features)
             model.addGenConstrIndicator(svars[i], False, grb.quicksum(vvars[(i, j)]+wvars[(i, j)] for j in range(n_features)) <= 2*n_features-1)
-        
+
         # Region size constraint
         region_size = int(n_samples*self.beta)
         model.addConstr(grb.quicksum(svars[i] for i in range(n_samples)) <= region_size)
-        
+
         # Objective and optimization
         objective = (1/n_samples) * grb.quicksum(ti for ti in tvars)
         model.ModelSense = grb.GRB.MINIMIZE
@@ -500,7 +499,6 @@ class HyperboxILPComplementRegionEstimator(BaseEstimator):
 
         return y_pred
 
-
 class HyperboxILPGroupRegionEstimator(BaseEstimator):
     '''
     Identifies a region of disagreement as a hyperbox, using the Hyperbox Group integer linear program.
@@ -514,7 +512,7 @@ class HyperboxILPGroupRegionEstimator(BaseEstimator):
     ----------
     lb_ : array-like of shape (n_features,)
         A list of lower bounds of the fitted hyperbox, one for each feature.
-    
+
     ub_ : array-like of shape (n_features,)
         A list of upper bounds of the fitted hyperbox, one for each feature.
     '''
@@ -560,7 +558,7 @@ class HyperboxILPGroupRegionEstimator(BaseEstimator):
         data_terms = np.zeros((n_samples, n_agents))
         for i in range(n_samples):
             data_terms[i, a[i]] = y[i]-preds[i]
-            
+
         # Optimizer settings
         model = grb.Model('model')
         for param in grb_params:
@@ -577,14 +575,14 @@ class HyperboxILPGroupRegionEstimator(BaseEstimator):
         for a in range(n_agents):
             ga = model.addVar(lb=0, ub=1, vtype=grb.GRB.BINARY)
             gvars.append(ga)
-            
+
         # Group terms
         tvars = []
         for a in range(n_agents):
             ta = model.addVar(vtype=grb.GRB.CONTINUOUS)
             model.addConstr(ta == grb.quicksum(gvars[a]*svars[i]*data_terms[i,a] for i in range(n_samples)))
             tvars.append(ta)
-            
+
         # Hyper box constraints
         lvars = []
         uvars = []
@@ -609,11 +607,11 @@ class HyperboxILPGroupRegionEstimator(BaseEstimator):
                 wvars[(i, j)] = wij
             model.addGenConstrIndicator(svars[i], True, grb.quicksum(vvars[(i, j)]+wvars[(i, j)] for j in range(n_features)) == 2*n_features)
             model.addGenConstrIndicator(svars[i], False, grb.quicksum(vvars[(i, j)]+wvars[(i, j)] for j in range(n_features)) <= 2*n_features-1)
-        
+
         # Region size constraint
         region_size = int(n_samples*self.beta)
         model.addConstr(grb.quicksum(svars[i] for i in range(n_samples)) <= region_size)
-        
+
         # Objective and optimization
         objective = (1/n_samples) * grb.quicksum(ti for ti in tvars)
         model.ModelSense = grb.GRB.MAXIMIZE
