@@ -3,7 +3,7 @@
 omop-variation is a tool to identify and evaluate heterogeneity in decision-making processes.
 
 - [Documentation](https://clinicalml.github.io/omop-variation/)
-- [Placeholder for thesis]()
+- [Identifying Heterogeneity in Decision-Making](https://dspace.mit.edu/handle/1721.1/139263)
 
 ## Background
 
@@ -13,7 +13,7 @@ This repository contains algorithms to identify the contexts on which this heter
 - For which types of patients do doctors consistently make different decisions on?
 - For which types of product categories do consumers have consistent preferences on?
 
-For more background on this topic, and for a complete exposition of the algorithms contained in this repository, refer to [placeholder for thesis]().
+For more background on this topic, and for a complete exposition of the algorithms contained in this repository, refer to [Identifying Heterogeneity in Decision-Making](https://dspace.mit.edu/handle/1721.1/139263).
 
 ## Dependencies
 
